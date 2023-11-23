@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    labels:
+        app: hasura
+        hasuraService: custom
+    name: hasura
+    namespace: default
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: hasura
+    template:
+        metadata:
+            creationTimestamp: null
+            labels:
+                app: hasura
+        spec:
+            containers:
+                - image: hasura/graphql-engine:v2.35.0
+                  imagePullPolicy: IfNotPresent
+                  name: hasura
+                  env:
+                      - name: HASURA_GRAPHQL_DATABASE_URL
+                        value: postgres://<username>:<password>@ssh.dratini.tech:5100/HASURA_DEV
+                      ## enable the console served by server
+                      - name: HASURA_GRAPHQL_ENABLE_CONSOLE
+                        value: "true"
+                      - name: HASURA_GRAPHQL_ENABLED_LOG_TYPES
+                        value: startup, http-log, webhook-log, websocket-log, query-log
+                      ## enable debugging mode. It is recommended to disable this in production
+                      - name: HASURA_GRAPHQL_DEV_MODE
+                        value: "true"
+                      - name: HASURA_GRAPHQL_ADMIN_SECRET
+                        value: admin@123
+                      - name: HASURA_GRAPHQL_JWT_SECRET
+                        value: '{"jwk_url":"https://keycloak.dratini.tech/realms/master/protocol/openid-connect/certs"}'
+                  ports:
+                      - name: http
+                        containerPort: 8080
+                        protocol: TCP
+                  livenessProbe:
+                      httpGet:
+                          path: /healthz
+                          port: http
+                  readinessProbe:
+                      httpGet:
+                          path: /healthz
+                          port: http
+                  resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: hasura
+    name: hasura
+    namespace: default
+spec:
+    ports:
+        - protocol: TCP
+          port: 80
+          nodePort: 30007
+          targetPort: 8080
+    selector:
+        app: hasura
+    type: NodePort
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: "hasura"
+
+spec:
+    rules:
+        - host: hasura-dev.dratini.tech
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: hasura
+                            port:
+                                number: 80

@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: 'postgresdb'
+
+spec:
+  rules:
+    - host: postgres.dratini.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: postgresdb
+                port:
+                  number: 5432

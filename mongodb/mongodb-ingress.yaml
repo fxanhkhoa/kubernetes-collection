@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: 'mongodb'
+
+spec:
+  rules:
+    - host: mongodb.dratini.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mongo-db
+                port:
+                  number: 27017
